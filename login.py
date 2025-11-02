@@ -4,13 +4,15 @@ import pyodbc
 
 def abrir_janela_login():
     """
-    Abre uma janela de login e devolve uma conexão pyodbc válida,
-    ou None se o utilizador cancelar ou a ligação falhar.
+    Abre uma janela de login e devolve:
+      - uma conexão pyodbc válida
+      - o nível de isolamento selecionado
     """
     conn = None  
+    isolamento = None
 
     def conectar():
-        nonlocal conn  
+        nonlocal conn, isolamento  
         server = entry_server.get().strip()
         database = entry_database.get().strip()
         username = entry_username.get().strip()
@@ -76,4 +78,5 @@ def abrir_janela_login():
     ttk.Button(root, text="Connect", command=conectar).pack(pady=20)
     root.mainloop()
 
-    return conn
+    # devolve a ligação + o nível de isolamento
+    return conn, isolamento
