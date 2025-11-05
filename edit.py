@@ -5,10 +5,12 @@ import datetime
 from login import abrir_janela_login
 from decimal import Decimal
 
+#Função principal da aplicação edição ==> Permite editar a morada e a as quantidades dos produtos de uma encomenda
 def app_edit():
     # === Liga à base de dados através da janela de login ===
     conn, isolamento = abrir_janela_login()
 
+    # Se a conexão falhar, sai da aplicação
     if not conn:
         return
 
@@ -28,7 +30,7 @@ def app_edit():
     entry_encid = ttk.Entry(frame_top, width=10)
     entry_encid.grid(row=0, column=1, padx=5)
 
-    btn_carregar = ttk.Button(frame_top, text="Carregar Encomenda")
+    btn_carregar = ttk.Button(frame_top, text="Carregar Encomenda")#Botao ao ser clicado executa a função carregar_encomenda()
     btn_carregar.grid(row=0, column=2, padx=10)
 
     # === Cabeçalho da encomenda (Cliente, Nome, Morada) ===
@@ -73,6 +75,7 @@ def app_edit():
         entry_edit.insert(0, valor_atual)
         entry_edit.focus()
 
+        #Guardar as alterações na base de dados
         def salvar_edicao(event):
             novo_valor = entry_edit.get()
             valores = list(tree_linhas.item(item, "values"))
@@ -91,7 +94,7 @@ def app_edit():
     # === Função: Carregar encomenda ===
     def carregar_encomenda():
         try:
-            encid = int(entry_encid.get().strip())
+            encid = int(entry_encid.get().strip())#Valida o ID introduzido
         except ValueError:
             messagebox.showwarning("Aviso", "O ID da encomenda deve ser um número.")
             return
