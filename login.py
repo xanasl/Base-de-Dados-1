@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-import pyodbc
+import pyodbc #Faz a ligação ao SQL Server
 
 def abrir_janela_login():
     """
@@ -13,16 +13,17 @@ def abrir_janela_login():
 
     def conectar():
         nonlocal conn, isolamento  
-        server = entry_server.get().strip()
-        database = entry_database.get().strip()
-        username = entry_username.get().strip()
-        password = entry_password.get().strip()
-        isolamento = combo_auth.get().strip()
+        server = entry_server.get().strip()#Endereço do servidor (IP)
+        database = entry_database.get().strip()#Nome da base de dados
+        username = entry_username.get().strip()#Nome do utilizador
+        password = entry_password.get().strip()#Password do utilizador
+        isolamento = combo_auth.get().strip()#Nível de isolamento
 
         if not (server and database and username and password):
             messagebox.showwarning("Campos obrigatórios", "Por favor preencha todos os campos.")
             return
 
+        # tenta estabelecer a conexão à base de dados
         try:
             conn_str = (
                 f"DRIVER={{ODBC Driver 17 for SQL Server}};"
@@ -31,9 +32,9 @@ def abrir_janela_login():
                 f"UID={username};"
                 f"PWD={password};"
             )
-            conn = pyodbc.connect(conn_str)
+            conn = pyodbc.connect(conn_str)#Estabelece a ligação
             cursor = conn.cursor()
-            cursor.execute(f"SET TRANSACTION ISOLATION LEVEL {isolamento};")
+            cursor.execute(f"SET TRANSACTION ISOLATION LEVEL {isolamento};")# Define o nivel de isolamento escolhido
             root.destroy()
         except Exception as e:
             messagebox.showerror("Erro de conexão", f"Não foi possível conectar:\n\n{e}")
@@ -66,6 +67,8 @@ def abrir_janela_login():
     entry_password.grid(row=3, column=1, padx=5)
 
     ttk.Label(frame, text="Nível de Isolamento:").grid(row=4, column=0, sticky="w", pady=5)
+    
+    #Combobox para selecionar o nível de isolamento
     combo_auth = ttk.Combobox(
         frame,
         values=["READ COMMITTED", "READ UNCOMMITTED", "REPEATABLE READ", "SERIALIZABLE"],
@@ -75,8 +78,8 @@ def abrir_janela_login():
     combo_auth.current(0)
     combo_auth.grid(row=4, column=1, padx=5)
 
-    ttk.Button(root, text="Connect", command=conectar).pack(pady=20)
-    root.mainloop()
+    ttk.Button(root, text="Connect", command=conectar).pack(pady=20)#Botão para conectar
+    root.mainloop()#Espera pela interação do utilizador
 
     # devolve a ligação + o nível de isolamento
     return conn, isolamento
