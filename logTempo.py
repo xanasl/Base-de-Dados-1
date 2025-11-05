@@ -1,13 +1,15 @@
-
 from login import abrir_janela_login
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-def mostrar_grelha(conn, nome_tabela, intervalo=5000):
-    """Abre uma janela Tkinter que mostra todos os dados de uma tabela e faz refresh automático."""
+def mostrar_grelha(conn, intervalo=5000):
+    """
+    Abre uma janela Tkinter que mostra os tempos de edição (EventType='O')
+    e faz refresh automático a cada 'intervalo' milissegundos.
+    """
     janela = tk.Tk()
-    janela.title(f"Tabela: {nome_tabela}")
-    janela.geometry("900x500")
+    janela.title("Tempos de Edição das Encomendas")
+    janela.geometry("800x500")
 
     frame = ttk.Frame(janela, padding=10)
     frame.pack(fill="both", expand=True)
@@ -24,50 +26,64 @@ def mostrar_grelha(conn, nome_tabela, intervalo=5000):
     frame.rowconfigure(0, weight=1)
     frame.columnconfigure(0, weight=1)
 
+    # === Função que lê a BD e atualiza a grelha ===
     def atualizar_grelha():
-        """Atualiza o conteúdo da grelha a partir da base de dados."""
         try:
             cursor = conn.cursor()
-            cursor.execute(f"""
-                SELECT *
-                FROM {nome_tabela}
-                WHERE EventType = 'O'
+            # Consulta: calcula o tempo entre o início e o fim de cada edição
+            cursor.execute("""
+                SELECT 
+                    COALESCE(LO1.UserId, 'Desconhecido') AS UserId,
+                    LO1.Objecto AS EncId,
+                    DATEDIFF(SECOND, LO1.Valor, LO2.Valor) AS Tempo
+                FROM LogOperations LO1
+                JOIN LogOperations LO2 
+                    ON LO1.Referencia = LO2.Referencia
+                WHERE 
+                    LO1.EventType = 'O' 
+                    AND LO2.EventType = 'O'
+                    AND LO1.DCriacao < LO2.DCriacao
             """)
             colunas = [desc[0] for desc in cursor.description]
             dados = cursor.fetchall()
         except Exception as e:
-            messagebox.showerror("Erro", f"Não foi possível obter os dados da tabela:\n\n{e}")
+            messagebox.showerror("Erro", f"Erro ao obter dados:\n\n{e}")
             return
 
-        # Atualiza colunas (só se mudarem)
+        # Define colunas (só uma vez)
         if not tree["columns"]:
             tree["columns"] = colunas
             for col in colunas:
                 tree.heading(col, text=col)
                 tree.column(col, width=150, anchor="center")
 
-        # Limpa os dados antigos
+        # Limpa dados antigos
         for item in tree.get_children():
             tree.delete(item)
 
-        # Insere os novos dados
+        # Insere novos dados
         for linha in dados:
-            tree.insert("", "end", values=linha)
+            linha_limpa = [
+                str(valor).replace("'", "").replace("(", "").replace(")", "") if valor is not None else ""
+                for valor in linha
+            ]
+            tree.insert("", "end", values=linha_limpa)
 
-        # Agenda a próxima atualização (em milissegundos)
         janela.after(intervalo, atualizar_grelha)
 
-    # Primeira atualização imediata
+    # Primeira atualização
     atualizar_grelha()
 
     janela.mainloop()
 
 
 # --- Código principal ---
-conn, isolamento = abrir_janela_login()
+if __name__ == "__main__":
+    conn, isolamento = abrir_janela_login()
 
-if conn:
-    mostrar_grelha(conn, "LogOperations", intervalo=60000)  # refresh a cada minuto
-    conn.close()
-else:
-    print("Ligação não estabelecida.")
+    if conn:
+        # Refresh a cada 60 segundos (60000 ms)
+        mostrar_grelha(conn, intervalo=60000)
+        conn.close()
+    else:
+        print("Ligação não estabelecida.")

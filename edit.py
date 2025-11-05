@@ -5,7 +5,11 @@ import datetime
 from login import abrir_janela_login
 from decimal import Decimal
 
-#Função principal da aplicação edição ==> Permite editar a morada e a as quantidades dos produtos de uma encomenda
+# ============================================================
+# Função principal da aplicação de edição de encomendas
+# Permite editar a morada e as quantidades dos produtos
+# Regista logs de início e fim e mede o tempo total da operação
+# ============================================================
 def app_edit():
     # === Liga à base de dados através da janela de login ===
     conn, isolamento = abrir_janela_login()
@@ -30,7 +34,7 @@ def app_edit():
     entry_encid = ttk.Entry(frame_top, width=10)
     entry_encid.grid(row=0, column=1, padx=5)
 
-    btn_carregar = ttk.Button(frame_top, text="Carregar Encomenda")#Botao ao ser clicado executa a função carregar_encomenda()
+    btn_carregar = ttk.Button(frame_top, text="Carregar Encomenda")
     btn_carregar.grid(row=0, column=2, padx=10)
 
     # === Cabeçalho da encomenda (Cliente, Nome, Morada) ===
@@ -61,7 +65,7 @@ def app_edit():
         tree_linhas.column(col, width=120, anchor="center")
     tree_linhas.pack(fill="both", expand=True)
 
-    # Permitir editar apenas a coluna "Qtd"
+    # === Permitir editar apenas a coluna "Qtd" ===
     def editar_qtd(event):
         item = tree_linhas.identify_row(event.y)
         coluna = tree_linhas.identify_column(event.x)
@@ -75,7 +79,6 @@ def app_edit():
         entry_edit.insert(0, valor_atual)
         entry_edit.focus()
 
-        #Guardar as alterações na base de dados
         def salvar_edicao(event):
             novo_valor = entry_edit.get()
             valores = list(tree_linhas.item(item, "values"))
@@ -90,24 +93,27 @@ def app_edit():
 
     # Identificador único da operação (referência no LogOperations)
     user_ref = f"G1-{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+    start_time = None  # tempo de início da edição
 
     # === Função: Carregar encomenda ===
     def carregar_encomenda():
+        nonlocal start_time
         try:
-            encid = int(entry_encid.get().strip())#Valida o ID introduzido
+            encid = int(entry_encid.get().strip())  # Valida o ID introduzido
         except ValueError:
             messagebox.showwarning("Aviso", "O ID da encomenda deve ser um número.")
             return
 
         try:
-            # aplica o nível de isolamento escolhido
+            # Aplica o nível de isolamento escolhido
             cursor.execute(f"SET TRANSACTION ISOLATION LEVEL {isolamento}")
 
-            # Inserir log de início
+            # Registar início da operação no log
+            start_time = datetime.datetime.now()
             cursor.execute("""
-                INSERT INTO LogOperations(EventType, Objecto, Valor, Referencia)
+                INSERT INTO LogOperations (EventType, Objecto, Valor, Referencia)
                 VALUES ('O', ?, ?, ?)
-            """, ('Encomenda', datetime.datetime.now(), user_ref))
+            """, (f"Encomenda {encid}", start_time, user_ref))
             conn.commit()
 
             # Ler cabeçalho da encomenda
@@ -146,6 +152,7 @@ def app_edit():
                     valores_limp.append(v)
                 tree_linhas.insert("", "end", values=tuple(valores_limp))
 
+
         except Exception as e:
             messagebox.showerror("Erro", str(e))
 
@@ -174,14 +181,20 @@ def app_edit():
 
             conn.commit()
 
+            # Calcular o tempo decorrido
+            end_time = datetime.datetime.now()
+            tempo_total = None
+            if start_time:
+                tempo_total = end_time - start_time
+
             # Log do fim da edição
             cursor.execute("""
-                INSERT INTO LogOperations(EventType, Objecto, Valor, Referencia)
+                INSERT INTO LogOperations (EventType, Objecto, Valor, Referencia)
                 VALUES ('O', ?, ?, ?)
-            """, ('Encomenda', datetime.datetime.now(), user_ref))
+            """, (f"Encomenda {encid}", end_time, user_ref))
             conn.commit()
 
-            messagebox.showinfo("Sucesso", "Alterações guardadas com sucesso!")
+            msg = "Alterações guardadas com sucesso!"
 
         except Exception as e:
             conn.rollback()
