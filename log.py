@@ -16,7 +16,7 @@ def mostrar_grelha(conn, nome_tabela, intervalo=5000):
 
     scroll_y = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
     scroll_x = ttk.Scrollbar(frame, orient="horizontal", command=tree.xview)
-    tree.configure(yscroll=scroll_y.set, xscroll=scroll_x.set)
+    tree.configure(yscrollcommand=scroll_y.set, xscrollcommand=scroll_x.set)
     scroll_y.grid(row=0, column=1, sticky="ns")
     scroll_x.grid(row=1, column=0, sticky="ew")
 

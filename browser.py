@@ -148,9 +148,12 @@ def app_browser():
                 load_lines(encid)
             else:
                 tree_lines.delete(*tree_lines.get_children())#Limpa a grelha de linhas
-        
+            
+            #Atualiza o label do último refresh
+            lbl_last_refresh.config(text=f"Último Refresh: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         except Exception as e:
             messagebox.showerror("Erro ao carregar as encomendas", str(e))
+        
 
     # === Função: Carrega as linhas da encomenda selecionada na grelha inferior ===
     def load_lines(encid):
